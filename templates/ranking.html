@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>今月のMVPランキング</title>
+</head>
+<body>
+    <h1>今月の頑張ったスタッフランキング 🏆</h1>
+    <a href="/vote">← 投票画面に戻る</a>
+    <hr>
+
+    <table border="1" cellpadding="10" style="border-collapse: collapse;">
+        <thead>
+            <tr style="background-color: #f2f2f2;">
+                <th>順位</th>
+                <th>名前</th>
+                <th>役割</th>
+                <th>獲得票数</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in ranking %}
+            <tr>
+                <td>{{ loop.index }}位</td>
+                <td><b>{{ row.user.username }}</b></td>
+                <td>{{ row.user.role }}</td>
+                <td style="font-size: 1.2em; text-align: center;">{{ row.count }}票</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    <p>※今月（1日〜今日まで）の集計結果です</p>
+</body>
+</html>:

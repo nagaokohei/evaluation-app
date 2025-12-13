@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>投票画面</title>
+</head>
+<body>
+    <h1>お疲れ様です、{{ name }}さん</h1>
+    
+    {% if message %}
+        <p><b>{{ message }}</b></p>
+    {% endif %}
+
+    {% if not voted %}
+        <p>今日一番輝いていたスタッフを選んでください！</p>
+        
+        <form method="POST" action="/vote">
+            <label>MVP候補：</label>
+            <select name="voted_id">
+                {% for user in candidates %}
+                    <option value="{{ user.id }}">{{ user.username }} ({{ user.role }})</option>
+                {% endfor %}
+            </select>
+            <br><br>
+            <button type="submit">投票する！</button>
+        </form>
+    {% endif %}
+
+    <hr>
+    <p>
+        <a href="/ranking" style="font-size: 1.0em; font-weight: bold;">🏆 今月のランキングを見る</a>
+    </p>
+    <br>
+    <a href="/logout">ログアウト</a>
+</body>
+</html>

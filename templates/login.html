@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>ログイン</title>
+</head>
+<body>
+    <h1>スタッフログイン</h1>
+    <form method="POST">
+        <div>
+            <label>名前：</label>
+            <input type="text" name="username">
+        </div>
+        <div>
+            <label>パスワード：</label>
+            <input type="password" name="password">
+        </div>
+        <button type="submit">ログインする</button>
+    </form>
+    
+    {% if message %}
+    <p style="color: red;">{{ message }}</p>
+    {% endif %}
+</body>
+</html>
