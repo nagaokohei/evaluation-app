@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>スタッフ管理画面</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; }
+        .form-group { margin-bottom: 15px; padding: 15px; background: #f0f0f0; border-radius: 8px; }
+        input, select { padding: 8px; margin: 5px 0; width: 100%; box-sizing: border-box; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .btn { background: #333; color: white; padding: 10px; text-decoration: none; display: inline-block; border-radius: 5px; }
+        .btn-add { background: #28a745; border: none; cursor: pointer; width: 100%; }
+        .btn-delete { background: #dc3545; color: white; border: none; padding: 5px 10px; cursor: pointer; border-radius: 3px; }
+    </style>
+</head>
+<body>
+
+    <h2>🛠 スタッフ管理画面</h2>
+    <p><a href="{{ url_for('vote_page') }}">← 投票画面に戻る</a></p>
+
+    <div class="form-group">
+        <h3>新規スタッフ登録</h3>
+        <form method="POST" action="{{ url_for('admin_page') }}">
+            <label>名前:</label>
+            <input type="text" name="username" required placeholder="例：やまだたろう">
+            
+            <label>パスワード:</label>
+            <input type="text" name="password" required placeholder="初期パスワード">
+            
+            <label>役職:</label>
+            <select name="role">
+                <option value="ホール">ホール</option>
+                <option value="キッチン">キッチン</option>
+                <option value="admin">管理者</option>
+            </select>
+            
+            <button type="submit" class="btn btn-add">登録する</button>
+        </form>
+    </div>
+
+    <h3>現在のスタッフ一覧</h3>
+    <table>
+        <thead>
+            <tr>
+                <th>名前</th>
+                <th>パスワード</th>
+                <th>役職</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.username }}</td>
+                <td>{{ user.password }}</td>
+                <td>
+                    {% if user.role == 'admin' %}管理者{% elif user.role == 'ホール' %}ホール{% else %}キッチン{% endif %}
+                </td>
+                <td>
+                    {% if user.id != session['user_id'] %}
+                    <form method="POST" action="{{ url_for('delete_user', id=user.id) }}" onsubmit="return confirm('本当に削除しますか？');">
+                        <button type="submit" class="btn-delete">削除</button>
+                    </form>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+</body>
+</html>

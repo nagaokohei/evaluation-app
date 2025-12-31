@@ -35,6 +35,7 @@ def login():
         if user and user.password == password:
             session['user_id'] = user.id
             session['username'] = user.username
+            session['role'] = user.role
             return redirect(url_for('vote_page'))
         else:
             message = "名前かパスワードが間違っています"
@@ -96,5 +97,54 @@ def logout():
     session.pop('user_id', None)
     return redirect(url_for('login'))
 
+# 5. 管理者ページ（一覧・登録）
+@app.route('/admin', methods=['GET', 'POST'])
+def admin_page():
+    # セキュリティ: 管理者(admin)以外は追い出す
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect(url_for('vote_page'))
+
+    if request.method == 'POST':
+        # 新規登録の処理
+        username = request.form['username']
+        password = request.form['password']
+        role = request.form['role']
+
+        # 同じ名前の人がいないかチェック
+        exists = User.query.filter_by(username=username).first()
+        if exists:
+            # エラー表示などは今回は省略し、ログに出すだけにしておきます
+            print("そのユーザー名は既に使われています")
+        else:
+            new_user = User(username=username, password=password, role=role)
+            db.session.add(new_user)
+            db.session.commit()
+        
+        # 画面を更新（二重送信防止のためリダイレクト）
+        return redirect(url_for('admin_page'))
+
+    # 全員リストを取得して表示
+    all_users = User.query.all()
+    return render_template('admin.html', users=all_users)
+
+# 6. メンバー削除機能
+@app.route('/admin/delete/<int:id>', methods=['POST'])
+def delete_user(id):
+    # セキュリティ: 管理者以外は実行不可
+    if 'role' not in session or session['role'] != 'admin':
+        return redirect(url_for('vote_page'))
+
+    # 自分自身を消さないようにする安全装置
+    if id == session['user_id']:
+        return redirect(url_for('admin_page'))
+
+    user_to_delete = User.query.get(id)
+    if user_to_delete:
+        db.session.delete(user_to_delete)
+        db.session.commit()
+    
+    return redirect(url_for('admin_page'))
+
+# --- 追加ここまで ---
 if __name__ == '__main__':
     app.run(debug=True)
