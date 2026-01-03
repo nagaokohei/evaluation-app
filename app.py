@@ -83,11 +83,15 @@ def ranking():
     users = User.query.all()
     ranking_data = []
     
-    for user in users:
-        count = Vote.query.filter(Vote.voted_id == user.id, Vote.vote_date >= first_day).count()
-        ranking_data.append({'user': user, 'count': count})
+    for user in users: # ranking_dataのリスト作成
+        if user.role == 'admin':
+            continue
 
-    ranking_data.sort(key=lambda x: x['count'], reverse=True)
+        count_voted = Vote.query.filter(Vote.voted_id == user.id, Vote.vote_date >= first_day).count()
+        count_vote  = Vote.query.filter(Vote.voter_id == user.id, Vote.vote_date >= first_day).count()
+        ranking_data.append({'user': user, 'count_voted': count_voted, 'count_vote': count_vote})
+
+    ranking_data.sort(key=lambda x: x['count_voted'], reverse=True)
 
     return render_template('ranking.html', ranking=ranking_data)
 
@@ -95,6 +99,7 @@ def ranking():
 @app.route('/logout')
 def logout():
     session.pop('user_id', None)
+
     return redirect(url_for('login'))
 
 # 5. 管理者ページ（一覧・登録）

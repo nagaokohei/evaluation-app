@@ -16,6 +16,7 @@
                 <th>名前</th>
                 <th>役割</th>
                 <th>獲得票数</th>
+                <th>投票数</th>
             </tr>
         </thead>
         <tbody>
@@ -24,7 +25,8 @@
                 <td>{{ loop.index }}位</td>
                 <td><b>{{ row.user.username }}</b></td>
                 <td>{{ row.user.role }}</td>
-                <td style="font-size: 1.2em; text-align: center;">{{ row.count }}票</td>
+                <td style="font-size: 1.2em; text-align: center;">{{ row.count_voted }}票</td>
+                <td style="font-size: 1.2em; text-align: center;">{{ row.count_vote }}票</td>
             </tr>
             {% endfor %}
         </tbody>
