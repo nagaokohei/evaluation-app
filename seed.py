@@ -9,7 +9,7 @@ with app.app_context():
 
     # スタッフ全員のリスト
     staff_members = [
-        {"username": "なかがわしんや", "password": "15131", "role": "社員"},
+        {"username": "なかがわしんや", "password": "15131", "role": "admin"},
         {"username": "ながおこうへい", "password": "12214", "role": "ホール"},
         {"username": "こんどうあや", "password": "12249", "role": "ホール"},
         {"username": "ほんまひろと", "password": "12255", "role": "ホール"},

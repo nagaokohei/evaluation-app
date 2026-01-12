@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>過去の集計結果検索</title>
+    </head>
+<body style="padding: 20px; font-family: sans-serif;">
+
+    <h2>📅 過去の集計結果検索</h2>
+
+    <div style="background: #f0f0f0; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+        <form method="POST" action="{{ url_for('ranking_search') }}">
+            <label>対象：</label>
+            <select name="year">
+                <option value="2025">2025年</option>
+                <option value="2026">2026年</option>
+            </select>
+            
+            <select name="month">
+                {% for i in range(1, 13) %}
+                <option value="{{ i }}">{{ i }}月</option>
+                {% endfor %}
+            </select>
+            
+            <button type="submit" style="margin-left: 10px;">検索</button>
+        </form>
+    </div>
+
+    {% if year and month %}
+        <h3> {{ year }}年{{ month }}月の結果</h3>
+
+        {% if ranking %}
+            <table border="1" cellpadding="10" style="border-collapse: collapse; width: 100%;">
+                <tr style="background: #eee;">
+                    <th>順位</th>
+                    <th>名前</th>
+                    <th>役職</th>
+                    <th>獲得票数</th>
+                </tr>
+                {% for row in ranking %}
+                <tr>
+                    <td>{{ loop.index }}位</td>
+                    <td><b>{{ row.user.username }}</b></td>
+                    <td>{{ row.user.role }}</td>
+                    <td>{{ row.count }}票</td>
+                </tr>
+                {% endfor %}
+            </table>
+        {% else %}
+            <p>データが見つかりませんでした。</p>
+        {% endif %}
+    
+    {% else %}
+        <p>↑ 上のフォームから年月を選んで検索してください。</p>
+    {% endif %}
+
+    <div style="margin-top: 20px;">
+        <a href="{{ url_for('vote_page') }}">戻る</a>
+    </div>
+
+</body>
+</html>

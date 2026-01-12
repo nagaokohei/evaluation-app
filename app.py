@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, redirect, session, url_for
 from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import extract
 from datetime import date
 
 app = Flask(__name__)
@@ -20,12 +21,13 @@ class Vote(db.Model):
     voter_id = db.Column(db.Integer, nullable=False)
     voted_id = db.Column(db.Integer, nullable=False)
     vote_date = db.Column(db.Date, default=date.today)
+    comment = db.Column(db.String, nullable=False)
 
 # --- 機能 ---
 
 # 1. ログイン画面
 @app.route('/', methods=['GET', 'POST'])
-def login():
+def login_page():
     message = ""
     if request.method == 'POST':
         username = request.form['username']
@@ -46,7 +48,7 @@ def login():
 @app.route('/vote', methods=['GET', 'POST'])
 def vote_page():
     if 'user_id' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('login_page'))
 
     my_id = session['user_id']
     message = ""
@@ -61,7 +63,8 @@ def vote_page():
 
     if request.method == 'POST' and not voted:
         target_id = request.form['voted_id']
-        new_vote = Vote(voter_id=my_id, voted_id=target_id)
+        comment = request.form['comment']
+        new_vote = Vote(voter_id=my_id, voted_id=target_id, comment=comment)
         db.session.add(new_vote)
         db.session.commit()
         return redirect(url_for('vote_page'))
@@ -71,12 +74,15 @@ def vote_page():
     # 今回はシンプルにURLを直打ちするか、HTMLにリンクを追加します。
     return render_template('vote.html', name=session['username'], candidates=candidates, message=message, voted=voted)
 
-# 3. ランキング画面（追加機能）
+# 3. ランキング画面
 @app.route('/ranking')
-def ranking():
+def ranking_page():
     if 'user_id' not in session:
-        return redirect(url_for('login'))
-
+        return redirect(url_for('login_page'))
+    
+    if session.get('role') != 'admin':
+        return redirect(url_for('vote_page'))
+    
     today = date.today()
     first_day = today.replace(day=1) # 今月の1日
 
@@ -84,7 +90,7 @@ def ranking():
     ranking_data = []
     
     for user in users: # ranking_dataのリスト作成
-        if user.role == 'admin':
+        if user.role == 'admin_page':
             continue
 
         count_voted = Vote.query.filter(Vote.voted_id == user.id, Vote.vote_date >= first_day).count()
@@ -94,13 +100,56 @@ def ranking():
     ranking_data.sort(key=lambda x: x['count_voted'], reverse=True)
 
     return render_template('ranking.html', ranking=ranking_data)
+# app.py
+
+@app.route('/ranking/search', methods=['GET', 'POST'])
+def ranking_search():
+    # --- 1. 管理者チェック（門前払い） ---
+    if session.get('role') != 'admin':
+        return redirect(url_for('vote_page'))
+
+    ranking_data = []
+    search_year = None
+    search_month = None
+
+    # --- 2. 検索ボタンが押されたとき(POST)の処理 ---
+    if request.method == 'POST':
+        # フォームから年と月を受け取る
+        search_year = int(request.form.get('year'))
+        search_month = int(request.form.get('month'))
+
+        # 全員分ループして集計
+        users = User.query.all()
+        for u in users:
+            if u.role == 'admin':
+                continue
+
+            # ★ここがポイント！ 指定した年と月で絞り込む魔法
+            vote_count = Vote.query.filter(
+                Vote.voted_id == u.id,
+                extract('year', Vote.vote_date) == search_year,
+                extract('month', Vote.vote_date) == search_month
+            ).count()
+
+            # 票があればリストに追加（0票も表示したいなら条件を外す）
+            if vote_count > 0:
+                ranking_data.append({'user': u, 'count': vote_count})
+
+        # 並べ替え
+        ranking_data.sort(key=lambda x: x['count'], reverse=True)
+
+    # --- 3. 画面を表示 ---
+    return render_template('ranking_search.html', 
+                           ranking=ranking_data, 
+                           year=search_year, 
+                           month=search_month)
 
 # 4. ログアウト
 @app.route('/logout')
-def logout():
+def logout_page():
     session.pop('user_id', None)
 
-    return redirect(url_for('login'))
+    return redirect(url_for('login_page'))
 
 # 5. 管理者ページ（一覧・登録）
 @app.route('/admin', methods=['GET', 'POST'])
@@ -136,7 +185,7 @@ def admin_page():
 @app.route('/admin/delete/<int:id>', methods=['POST'])
 def delete_user(id):
     # セキュリティ: 管理者以外は実行不可
-    if 'role' not in session or session['role'] != 'admin':
+    if 'role' not in session or session['role'] != 'admin_page':
         return redirect(url_for('vote_page'))
 
     # 自分自身を消さないようにする安全装置

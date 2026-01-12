@@ -8,11 +8,21 @@
     <h1>お疲れ様です、{{ name }}さん</h1>
     
     {% if session['role'] == 'admin' %}
-    <div style="margin-top: 30px; text-align: center; border-top: 1px solid #ccc; padding-top: 10px;">
+    <div style="margin-top: 15px; text-align: center; border-top: 1px solid #ccc; padding-top: 10px;">
         <p>管理者メニュー</p>
-        <a href="{{ url_for('admin_page') }}" style="background: black; color: white; padding: 5px 10px; text-decoration: none; border-radius: 5px;">
-            🛠 スタッフ管理へ
-        </a>
+    
+        <div style="margin-bottom: 15px;">
+            <a href="{{ url_for('admin_page') }}" style="background: black; color: white; padding: 5px 10px; text-decoration: none; border-radius: 5px;">
+                スタッフ管理画面へ
+            </a>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+            <a href="{{ url_for('ranking_search') }}" style="background: black; color: white; padding: 5px 10px; text-decoration: none; border-radius: 5px;">
+                集計結果画面へ 
+            </a>
+        </div>
+
     </div>
     {% endif %}
 
@@ -20,11 +30,13 @@
         <p><b>{{ message }}</b></p>
     {% endif %}
 
+    <hr>
+
     {% if not voted %}
         <p>今日一番輝いていたスタッフを選んでください！</p>
         
         <form method="POST" action="/vote">
-            <label>MVP候補：</label>
+            <label>輝いていたスタッフ：</label>
             <select name="voted_id">
                 {% for user in candidates %}
                     {% if user.role != 'admin' %}
@@ -32,16 +44,18 @@
                     {% endif %}
                 {% endfor %}
             </select>
+
+            <br><br>
+
+            <label>メッセージ：</label><br>
+            <textarea name="comment" rows="3" placeholder="例：バッシングがとてもきれいでした！"></textarea>
+
             <br><br>
             <button type="submit">投票する！</button>
         </form>
     {% endif %}
-    
     <hr>
 
-    {% if voted %}
-        <a href="/ranking" style="font-size: 1.0em; font-weight: bold;">🏆 今月のランキングを見る</a>
-    {% endif %}
     <br>
     <a href="/logout">ログアウト</a>
 </body>
