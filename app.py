@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, redirect, session, url_for
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import extract
-from datetime import date
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///engagement.db'
@@ -20,7 +20,7 @@ class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     voter_id = db.Column(db.Integer, nullable=False)
     voted_id = db.Column(db.Integer, nullable=False)
-    vote_date = db.Column(db.Date, default=date.today)
+    vote_date = db.Column(db.DateTime, default=datetime.now)
     comment = db.Column(db.String, nullable=False)
 
 # --- 機能 ---
@@ -54,12 +54,32 @@ def vote_page():
     message = ""
     voted = False
 
-    today_vote = Vote.query.filter_by(voter_id=my_id, vote_date=date.today()).first()
-    
+    now = datetime.now()
+
+    # 2. 「現在の営業日」の開始時間（朝4時）を計算
+    if now.hour < 4:
+        # 深夜（0時〜3時）なら、「昨日」の朝4時からが今日の営業範囲
+        start_time = (now - timedelta(days=1)).replace(hour=4, minute=0, second=0, microsecond=0)
+    else:
+        # 朝4時を過ぎていれば、「今日」の朝4時から
+        start_time = now.replace(hour=4, minute=0, second=0, microsecond=0)
+
+    # 3. 終了時間（次の日の朝4時）
+    end_time = start_time + timedelta(days=1)
+
+    # 4. データベース検索（範囲指定に変える）
+    # ※ filter_by ではなく filter を使い、不等号で挟みます
+    today_vote = Vote.query.filter(
+        Vote.voter_id == my_id,       # 自分かどうか
+        Vote.vote_date >= start_time, # 営業開始より後
+        Vote.vote_date < end_time     # 営業終了より前
+    ).first()
+
     if today_vote:
         voted = True
         voted_user = User.query.get(today_vote.voted_id)
         message = f"本日は「{voted_user.username}」さんに投票済みです！"
+        return render_template('vote.html', name=session['username'], candidates=[], message=message, voted=voted)  
 
     if request.method == 'POST' and not voted:
         target_id = request.form['voted_id']
@@ -83,7 +103,7 @@ def ranking_page():
     if session.get('role') != 'admin':
         return redirect(url_for('vote_page'))
     
-    today = date.today()
+    today = datetime.now()
     first_day = today.replace(day=1) # 今月の1日
 
     users = User.query.all()
@@ -100,8 +120,8 @@ def ranking_page():
     ranking_data.sort(key=lambda x: x['count_voted'], reverse=True)
 
     return render_template('ranking.html', ranking=ranking_data)
-# app.py
 
+# 4. 集計結果検索画面
 @app.route('/ranking/search', methods=['GET', 'POST'])
 def ranking_search():
     # --- 1. 管理者チェック（門前払い） ---
@@ -117,33 +137,45 @@ def ranking_search():
         # フォームから年と月を受け取る
         search_year = int(request.form.get('year'))
         search_month = int(request.form.get('month'))
+        cutoff_hour = 4 
 
-        # 全員分ループして集計
+        # 1. 検索したい月の「開始日時」を作る (例: 1月1日 04:00:00)
+        start_dt = datetime(search_year, search_month, 1, cutoff_hour, 0, 0)
+
+        # 2. 「翌月の開始日時」を作る（＝検索したい月の終了日時）
+        # 12月の場合は、翌年は「来年の1月」になるよう調整が必要
+        if search_month == 12:
+            next_year = search_year + 1
+            next_month = 1
+        else:
+            next_year = search_year
+            next_month = search_month + 1
+            
+        # 例: 2月1日 03:59:59 まで（厳密には 04:00:00 未満）
+        end_dt = datetime(next_year, next_month, 1, cutoff_hour, 0, 0)
+
+        # 3. データベース検索（extractをやめて、期間指定にする）
         users = User.query.all()
         for u in users:
             if u.role == 'admin':
                 continue
 
-            # ★ここがポイント！ 指定した年と月で絞り込む魔法
+            # filter で挟み撃ち (start <= timestamp < end)
             vote_count = Vote.query.filter(
                 Vote.voted_id == u.id,
-                extract('year', Vote.vote_date) == search_year,
-                extract('month', Vote.vote_date) == search_month
+                Vote.vote_date >= start_dt, # 開始日時以上
+                Vote.vote_date < end_dt     # 終了日時より前
             ).count()
 
-            # 票があればリストに追加（0票も表示したいなら条件を外す）
             if vote_count > 0:
                 ranking_data.append({'user': u, 'count': vote_count})
-
-        # 並べ替え
+        
         ranking_data.sort(key=lambda x: x['count'], reverse=True)
 
-    # --- 3. 画面を表示 ---
     return render_template('ranking_search.html', 
                            ranking=ranking_data, 
                            year=search_year, 
                            month=search_month)
-
 # 4. ログアウト
 @app.route('/logout')
 def logout_page():
