@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>メッセージ履歴</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    </head>
+<body style="font-family: sans-serif; padding: 20px; max-width: 800px; margin: 0 auto;">
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2>メッセージ履歴</h2>
+        <a href="{{ url_for('vote_page') }}" style="text-decoration: none;">← 投票画面に戻る</a>
+    </div>
+
+    <h3 style="background: #e3f2fd; padding: 10px; border-radius: 5px;">📥 受信履歴 (もらったメッセージ)</h3>
+    {% if received %}
+        <table border="1" style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <tr style="background: #f9f9f9;">
+                <th style="padding: 8px;">日時</th>
+                <th style="padding: 8px;">送信者</th>
+                <th style="padding: 8px;">メッセージ</th>
+            </tr>
+            {% for vote in received %}
+            <tr>
+                <td style="padding: 8px; font-size: 0.9em; width: 160px;">
+                    {{ vote.vote_date.strftime('%Y/%m/%d %H:%M') }}
+                </td>
+                <td style="padding: 8px; font-weight: bold;">
+                    {{ vote.voter.username }} さん
+                </td>
+                <td style="padding: 8px;">{{ vote.comment }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>まだメッセージを受け取っていません。</p>
+    {% endif %}
+
+    <h3 style="background: #f1f8e9; padding: 10px; border-radius: 5px;">📤 送信履歴 (送ったメッセージ)</h3>
+    {% if sent %}
+        <table border="1" style="width: 100%; border-collapse: collapse;">
+            <tr style="background: #f9f9f9;">
+                <th style="padding: 8px;">日時</th>
+                <th style="padding: 8px;">宛先</th>
+                <th style="padding: 8px;">メッセージ</th>
+            </tr>
+            {% for vote in sent %}
+            <tr>
+                <td style="padding: 8px; font-size: 0.9em; width: 160px;">
+                    {{ vote.vote_date.strftime('%Y/%m/%d %H:%M') }}
+                </td>
+                <td style="padding: 8px;">
+                    {{ vote.voted.username }} さん
+                </td>
+                <td style="padding: 8px;">{{ vote.comment }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    {% else %}
+        <p>まだメッセージを送っていません。</p>
+    {% endif %}
+
+</body>
+</html>

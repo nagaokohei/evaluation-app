@@ -18,10 +18,12 @@ class User(db.Model):
 
 class Vote(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    voter_id = db.Column(db.Integer, nullable=False)
-    voted_id = db.Column(db.Integer, nullable=False)
+    voter_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    voted_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     vote_date = db.Column(db.DateTime, default=datetime.now)
     comment = db.Column(db.String, nullable=False)
+    voter = db.relationship('User', foreign_keys=[voter_id], backref='sent_votes')
+    voted = db.relationship('User', foreign_keys=[voted_id], backref='received_votes')
 
 # --- 機能 ---
 
@@ -93,6 +95,45 @@ def vote_page():
     # 投票画面にも「ランキングを見る」リンクを渡すためにHTML側で少し工夫してもいいですが、
     # 今回はシンプルにURLを直打ちするか、HTMLにリンクを追加します。
     return render_template('vote.html', name=session['username'], candidates=candidates, message=message, voted=voted)
+
+
+@app.route('/history')
+def history():
+    # 1. ログインチェック
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+        
+    user_id = session['user_id']
+
+    # --- 2. 「今日すでに投票したか？」のチェック (4時区切り) ---
+    now = datetime.now()
+    if now.hour < 4:
+        start_time = (now - timedelta(days=1)).replace(hour=4, minute=0, second=0, microsecond=0)
+    else:
+        start_time = now.replace(hour=4, minute=0, second=0, microsecond=0)
+    end_time = start_time + timedelta(days=1)
+
+    # 今日の投票データを探す
+    today_vote = Vote.query.filter(
+        Vote.voter_id == user_id,
+        Vote.vote_date >= start_time,
+        Vote.vote_date >= start_time,
+    ).first()
+
+    # ★もし投票していなければ、投票画面へ強制送還
+    if not today_vote:
+        flash("履歴を見るには、本日の投票を完了してください！")
+        return redirect(url_for('vote_page'))
+
+    # --- 3. 履歴データの取得 ---
+    
+    # 受信履歴 (自分が voted_id になっているもの)
+    received_votes = Vote.query.filter_by(voted_id=user_id).order_by(Vote.vote_date.desc()).all()
+    
+    # 送信履歴 (自分が voter_id になっているもの)
+    sent_votes = Vote.query.filter_by(voter_id=user_id).order_by(Vote.vote_date.desc()).all()
+
+    return render_template('history.html', received=received_votes, sent=sent_votes)
 
 # 3. ランキング画面
 @app.route('/ranking')

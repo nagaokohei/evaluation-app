@@ -28,6 +28,13 @@
 
     {% if message %}
         <p><b>{{ message }}</b></p>
+        {% if session ['role'] != 'admin' %}
+        <div style="margin-top: 20px; text-align: center;">
+        <a href="{{ url_for('history') }}" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">
+            送受信履歴を見る
+        </a>
+        </div>
+        {% endif %}
     {% endif %}
 
     <hr>
